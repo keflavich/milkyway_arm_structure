@@ -50,9 +50,9 @@ warnings.filterwarnings('ignore')
 # Command-line arguments
 # =============================================================================
 _parser = argparse.ArgumentParser(description='Extract near 3 kpc arm from CO/HI cubes.')
-_parser.add_argument('--velo-hw', type=float, default=10.0,
+_parser.add_argument('--velo-hw', type=float, default=8.0,
                      help='Half-width of arm velocity window [km/s] (default 10.0)')
-_parser.add_argument('--bg-hw', type=float, default=10.0,
+_parser.add_argument('--bg-hw', type=float, default=12.0,
                      help='Outer half-width of background window [km/s] (default 10.0)')
 args = _parser.parse_args()
 
@@ -60,6 +60,10 @@ args = _parser.parse_args()
 OUTDIR_BASE = '/orange/adamginsburg/cmz/arms'
 OUTDIR = OUTDIR_BASE
 os.makedirs(OUTDIR, exist_ok=True)
+
+SMALL_FONTSIZE = 14
+MEDIUM_FONTSIZE = 16
+LARGE_FONTSIZE = 18
 
 # ?? Velocity function & extraction parameters ?????????????????????????????????
 # near 3 kpc arm: 0 km/s at l=+12.5, -100 km/s at l=-12.5  ->  slope=4, offset=-50
@@ -90,9 +94,11 @@ BG_HW   = args.bg_hw   * u.km / u.s   # outer half-width of background window
 L_ARM_MIN = -13.0   # deg (allow a little margin beyond -12.5)
 L_ARM_MAX =  18.0   # deg
 
-plt.rcParams.update({'figure.facecolor': 'w', 'font.size': 10,
-'dpi': 150,
-                     'image.origin': 'lower', 'image.interpolation': 'none'})
+plt.rcParams.update({'figure.facecolor': 'w',
+                     'font.size': MEDIUM_FONTSIZE,
+                     'figure.dpi': 150,
+                     'image.origin': 'lower',
+                     'image.interpolation': 'none'})
 
 
 # ?????????????????????????????????????????????????????????????????????????????
@@ -124,7 +130,7 @@ def _save_single_panel(data, extent, title, png, dpi=120):
     vhi = float(np.nanpercentile(finite, 99)) if finite.size > 0 else 1.0
     ax.imshow(data, origin='lower', aspect='auto', extent=extent,
               vmin=vlo, vmax=vhi, cmap='gray_r')
-    ax.set_title(title, fontsize=9)
+    ax.set_title(title, fontsize=SMALL_FONTSIZE)
     ax.set_xlabel('Galactic Longitude (deg)')
     ax.set_ylabel('Galactic Latitude (deg)')
     fig.subplots_adjust(left=0.06, right=0.99, top=0.93, bottom=0.12)
@@ -177,7 +183,7 @@ def plot_arm_png(bgsub_file, velslab_file, outbase, label, arm_slug='3kpc'):
         vhi = float(np.nanpercentile(finite, 99)) if finite.size > 0 else 1.0
         ax.imshow(data, origin='lower', aspect='auto', extent=extent_2d,
                   vmin=vlo, vmax=vhi, cmap='gray_r')
-        ax.set_title(f'{label} – {title}', fontsize=9)
+        ax.set_title(f'{label} – {title}', fontsize=SMALL_FONTSIZE)
         ax.set_xlabel('Galactic Longitude (deg)')
         ax.set_ylabel('Galactic Latitude (deg)')
     # Tight no-gap layout: allocate equal height to every row, keeping each
@@ -616,9 +622,9 @@ def _make_summary_figure(mosaic_list, arm_label, outdir):
         lon_coord.set_ticks(spacing=2.0 * u.deg)
         lat_coord.set_ticks(spacing=0.25 * u.deg)
         ax.coords.grid(color='white', alpha=0.25, linestyle='--', linewidth=0.5)
-        ax.set_title(title, fontsize=10, pad=4)
+        ax.set_title(title, fontsize=MEDIUM_FONTSIZE, pad=4)
 
-    fig.suptitle(f'{arm_label} Arm - Background-Subtracted Maps', fontsize=14)
+    fig.suptitle(f'{arm_label} Arm - Background-Subtracted Maps', fontsize=LARGE_FONTSIZE)
     outpng = os.path.join(outdir, f'{arm_label}_summary.png')
     fig.savefig(outpng, dpi=120, bbox_inches='tight')
     plt.close(fig)

@@ -205,6 +205,12 @@ def parse_ds9_polygons(reg_path, sky_in='fk5'):
     return results
 
 
+# Approximate WFI footprint boxes (Galactic l, b) [deg]
+# GBTDS = Roman Galactic Bulge Time Domain Survey
+GBTDS_BOX = dict(l_min=-2.5, l_max=+2.5, b_min=-0.5, b_max=+0.3)
+# RGPS = Roman Galactic Center Time Domain extension
+RGPS_BOX  = dict(l_min=-0.9, l_max=+1.6, b_min=-1.6, b_max=-0.8)
+
 # Load region data once
 print('Loading Roman footprint regions...')
 _gbtds_polys = parse_ds9_polygons(ROMAN_GBTDS)
@@ -287,19 +293,28 @@ def plot_gcregion_ax(ax, dame_data, chimps_data, arm_cfg, show_roman=False):
 
     # --- Roman footprints ------------------------------------------------
     if show_roman:
-        gbtds_patches, rgps_patches = get_roman_patches(TARGET_WCS, TARGET_SHAPE)
+        # Approximate boxes from nominal survey footprint coordinates
+        def _draw_box(box, color, lw=2.0, ls='--', alpha=0.9):
+            l0, l1 = box['l_max'], box['l_min']   # note: lon axis flipped
+            b0, b1 = box['b_min'], box['b_max']
+            xs = [l0, l1, l1, l0, l0]
+            ys = [b0, b0, b1, b1, b0]
+            ax.plot(xs, ys, color=color, lw=lw, ls=ls, alpha=alpha,
+                    transform=ax.transData, zorder=9, solid_capstyle='butt')
 
-        # GBTDS (Galactic Center time-domain) – blue
+        _draw_box(GBTDS_BOX, color='dodgerblue')
+        _draw_box(RGPS_BOX,  color='darkorange')
+
+        # Optionally also overlay DS9-file polygons if they loaded
+        gbtds_patches, rgps_patches = get_roman_patches(TARGET_WCS, TARGET_SHAPE)
         if gbtds_patches:
-            col = PatchCollection(gbtds_patches, linewidths=0.5,
+            col = PatchCollection(gbtds_patches, linewidths=0.8,
                                   edgecolors='dodgerblue', facecolors='none',
                                   transform=ax.transData, zorder=8,
                                   label='Roman GBTDS')
             ax.add_collection(col)
-
-        # RGPS (Roman Galactic Plane Survey) – white/orange
         if rgps_patches:
-            col = PatchCollection(rgps_patches, linewidths=0.5,
+            col = PatchCollection(rgps_patches, linewidths=0.8,
                                   edgecolors='darkorange', facecolors='none',
                                   transform=ax.transData, zorder=8,
                                   label='Roman RGPS')
@@ -308,9 +323,9 @@ def plot_gcregion_ax(ax, dame_data, chimps_data, arm_cfg, show_roman=False):
     # --- Axes formatting -------------------------------------------------
     ax.set_xlim(LON_MAX, LON_MIN)     # Galactic longitude increases to the left
     ax.set_ylim(LAT_MIN, LAT_MAX)
-    ax.set_xlabel('Galactic longitude (deg)', fontsize=9)
-    ax.set_ylabel('Galactic latitude (deg)', fontsize=9)
-    ax.tick_params(labelsize=8)
+    ax.set_xlabel('Galactic longitude (deg)', fontsize=13)
+    ax.set_ylabel('Galactic latitude (deg)', fontsize=13)
+    ax.tick_params(labelsize=11)
 
     # Gridlines at integer degrees
     for gl in range(-3, 4):
@@ -318,7 +333,7 @@ def plot_gcregion_ax(ax, dame_data, chimps_data, arm_cfg, show_roman=False):
     for gb in range(-2, 2):
         ax.axhline(y=gb, color='white', lw=0.4, alpha=0.4)
 
-    ax.set_title(f"{arm_cfg['label']}\n{arm_cfg['vel']}", fontsize=10)
+    ax.set_title(f"{arm_cfg['label']}\n{arm_cfg['vel']}", fontsize=13)
 
 
 # ---------------------------------------------------------------------------
@@ -357,10 +372,10 @@ def make_arm_figure(arm_names, show_roman=False, outpath=None, outdir='.'):
     if show_roman:
         from matplotlib.lines import Line2D
         handles = [
-            Line2D([0], [0], color='dodgerblue', lw=1.5, label='Roman GBTDS'),
-            Line2D([0], [0], color='darkorange',  lw=1.5, label='Roman RGPS'),
+            Line2D([0], [0], color='dodgerblue', lw=2.0, ls='--', label='Roman GBTDS'),
+            Line2D([0], [0], color='darkorange',  lw=2.0, ls='--', label='Roman RGPS'),
         ]
-        axes[-1].legend(handles=handles, loc='lower right', fontsize=7,
+        axes[-1].legend(handles=handles, loc='lower right', fontsize=11,
                         framealpha=0.7)
 
     tag = '_roman' if show_roman else ''
@@ -387,10 +402,10 @@ def make_individual_figures(outdir='.', show_roman=False):
         if show_roman:
             from matplotlib.lines import Line2D
             handles = [
-                Line2D([0], [0], color='dodgerblue', lw=1.5, label='Roman GBTDS'),
-                Line2D([0], [0], color='darkorange',  lw=1.5, label='Roman RGPS'),
+                Line2D([0], [0], color='dodgerblue', lw=2.0, ls='--', label='Roman GBTDS'),
+                Line2D([0], [0], color='darkorange',  lw=2.0, ls='--', label='Roman RGPS'),
             ]
-            ax.legend(handles=handles, loc='lower right', fontsize=8,
+            ax.legend(handles=handles, loc='lower right', fontsize=11,
                       framealpha=0.7)
 
         fig.tight_layout()

@@ -37,6 +37,21 @@ warnings.filterwarnings('ignore', category=RuntimeWarning, message='.*empty slic
 warnings.filterwarnings('ignore', category=RuntimeWarning, message='.*All-NaN.*')
 
 # ---------------------------------------------------------------------------
+# Approximate WFI footprint boxes (Galactic l, b) [deg]
+# ---------------------------------------------------------------------------
+GBTDS_BOX = dict(l_min=-2.5, l_max=+2.5, b_min=-0.5, b_max=+0.3)
+RGPS_BOX  = dict(l_min=-0.9, l_max=+1.6, b_min=-1.6, b_max=-0.8)
+
+
+def _draw_roman_boxes(ax):
+    """Overlay approximate GBTDS (blue) and RGPS (orange) footprint boxes."""
+    for box, color in [(GBTDS_BOX, 'dodgerblue'), (RGPS_BOX, 'darkorange')]:
+        xs = [box['l_max'], box['l_min'], box['l_min'], box['l_max'], box['l_max']]
+        ys = [box['b_min'], box['b_min'], box['b_max'], box['b_max'], box['b_min']]
+        ax.plot(xs, ys, color=color, lw=2.0, ls='--', alpha=0.9, zorder=9,
+                solid_capstyle='butt')
+
+# ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 ARM_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -254,8 +269,8 @@ def make_spatial_figure():
                                extent=extent, cmap='gray_r',
                                vmin=vlo, vmax=vhi, interpolation='nearest')
                 cb = fig.colorbar(im, ax=ax, pad=0.02, fraction=0.046)
-                cb.set_label(r'$T_{\rm mb}$ (K)', fontsize=7)
-                cb.ax.tick_params(labelsize=7)
+                cb.set_label(r'$T_{\rm mb}$ (K)', fontsize=12)
+                cb.ax.tick_params(labelsize=12)
 
         # Light grid
         for gl in np.arange(-3, 4):
@@ -265,20 +280,34 @@ def make_spatial_figure():
 
         ax.set_xlim(LON_MAX, LON_MIN)
         ax.set_ylim(-0.5, 0.5)
-        ax.set_title(arm_name, fontsize=10)
-        ax.set_xlabel(r'$\ell$ (deg)', fontsize=9)
-        ax.set_ylabel(r'$b$ (deg)', fontsize=9)
-        ax.tick_params(labelsize=8)
+        ax.set_title(arm_name, fontsize=16)
+        ax.set_xlabel(r'$\ell$ (deg)', fontsize=14)
+        ax.set_ylabel(r'$b$ (deg)', fontsize=14)
+        ax.tick_params(labelsize=14)
 
-    fig.suptitle(r'SEDIGISM $^{13}$CO(2–1) — background-subtracted arm mosaics'
-                 r'  ($|\ell|<3°$, $|b|<0.5°$)',
-                 fontsize=11)
+    fig.suptitle(r'SEDIGISM $^{13}$CO(2\u20131) \u2014 background-subtracted arm mosaics'
+                 r'  ($|\ell|<3\degree$, $|b|<0.5\degree$)',
+                 fontsize=13)
 
-    outpath = os.path.join(OUTDIR, 'sedigism_gcregion_arms.png')
-    fig.savefig(outpath, dpi=150, bbox_inches='tight')
+    # Save plain version (no Roman boxes)
+    outpath_plain = os.path.join(OUTDIR, 'sedigism_gcregion_arms.png')
+    fig.savefig(outpath_plain, dpi=150, bbox_inches='tight')
+    print(f'  Saved: {outpath_plain}')
+
+    # Now add Roman footprint boxes and save the roman version
+    from matplotlib.lines import Line2D
+    for ax in axes:
+        _draw_roman_boxes(ax)
+    legend_handles = [
+        Line2D([0], [0], color='dodgerblue', lw=2.0, ls='--', label='Roman GBTDS'),
+        Line2D([0], [0], color='darkorange',  lw=2.0, ls='--', label='Roman RGPS'),
+    ]
+    axes[-1].legend(handles=legend_handles, loc='upper right', fontsize=11,
+                    framealpha=0.75)
+    outpath_roman = os.path.join(OUTDIR, 'sedigism_gcregion_arms_roman.png')
+    fig.savefig(outpath_roman, dpi=150, bbox_inches='tight')
+    print(f'  Saved: {outpath_roman}')
     plt.close(fig)
-    print(f'  Saved: {outpath}')
-
 
 # ---------------------------------------------------------------------------
 # Figure 2: PV diagram  (v_lim controls the velocity axis half-range in km/s)
@@ -349,7 +378,7 @@ def make_pv_figure(v_lim=200):
             va  = arm['label_va']
             pad = +pad_v if va == 'bottom' else -pad_v
             ax.text(ll, vl + pad, arm['name'],
-                    color=arm['color'], fontsize=9, ha='center', va=va,
+                    color=arm['color'], fontsize=14, ha='center', va=va,
                     fontweight='bold',
                     path_effects=[pe.Stroke(linewidth=2.5, foreground='black'),
                                   pe.Normal()],
@@ -434,7 +463,7 @@ def make_standalone_arm_figures():
                                vmin=vlo, vmax=vhi, interpolation='nearest')
                 cb = fig.colorbar(im, ax=ax, pad=0.01, fraction=0.025)
                 cb.set_label(r'$T_{\rm mb}$ (K)', fontsize=14)
-                cb.ax.tick_params(labelsize=12)
+                cb.ax.tick_params(labelsize=14)
 
         for gl in np.arange(-3, 4):
             ax.axvline(gl, color='gray', lw=0.3, alpha=0.4)
@@ -451,16 +480,31 @@ def make_standalone_arm_figures():
 
         outpath = os.path.join(subdir, f'sedigism_{slug}_arm.png')
         fig.savefig(outpath, dpi=150, bbox_inches='tight')
-        plt.close(fig)
         print(f'  Saved: {outpath}')
+
+        # Save roman variant with footprint boxes
+        _draw_roman_boxes(ax)
+        from matplotlib.lines import Line2D
+        legend_handles = [
+            Line2D([0], [0], color='dodgerblue', lw=2.0, ls='--', label='Roman GBTDS'),
+            Line2D([0], [0], color='darkorange',  lw=2.0, ls='--', label='Roman RGPS'),
+        ]
+        ax.legend(handles=legend_handles, loc='upper right', fontsize=13,
+                  framealpha=0.75)
+        outpath_roman = os.path.join(subdir, f'sedigism_{slug}_arm_roman.png')
+        fig.savefig(outpath_roman, dpi=150, bbox_inches='tight')
+        plt.close(fig)
+        print(f'  Saved: {outpath_roman}')
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 if __name__ == '__main__':
     make_spatial_figure()
     make_pv_figure(v_lim=200)
     make_pv_figure(v_lim=60)
     make_standalone_arm_figures()
     print('\nDone.')
+

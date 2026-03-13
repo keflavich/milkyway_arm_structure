@@ -22,15 +22,12 @@ import os
 import glob
 import argparse
 import warnings
-import re
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.patheffects as pe
-from matplotlib.patches import Polygon as MplPolygon
-from matplotlib.collections import PatchCollection
 from astropy.io import fits
 from astropy.wcs import WCS, FITSFixedWarning
 from astropy.coordinates import SkyCoord, Galactic, FK5
@@ -133,115 +130,21 @@ def reproject_to_target(fits_path):
 
 
 # ---------------------------------------------------------------------------
-# Roman footprint parsing
-# ---------------------------------------------------------------------------
-
-def parse_ds9_polygons(reg_path, sky_in='fk5'):
-    """
-    Parse a DS9 region file and return a list of (tag, galactic_vertices) tuples.
-    Each galactic_vertices is an (N, 2) array of (lon, lat) in Galactic degrees.
-    """
-    if not os.path.exists(reg_path):
-        print(f'  [warn] Region file not found: {reg_path}')
-        return []
-
-    results = []
-    # Longitude margin: some polygons near the wrap boundary
-    LON_MARGIN = 1.0
-    LAT_MARGIN = 0.5
-    coord_system = sky_in   # default from file header
-    with open(reg_path) as fh:
-        for line in fh:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                # Check for coordinate system directive
-                if line.lower() in ('fk5', 'icrs', 'galactic', 'j2000'):
-                    coord_system = line.lower()
-                continue
-            if line.lower() in ('fk5', 'icrs', 'galactic', 'j2000'):
-                coord_system = line.lower()
-                continue
-            m = re.match(r'polygon\(([^)]+)\)', line, re.IGNORECASE)
-            if not m:
-                continue
-            # DS9 polygons can be "x1,y1 x2,y2..." or "x1,y1,x2,y2,..."
-            raw = m.group(1)
-            if ',' in raw and ' ' in raw:
-                # space-separated pairs, comma within each pair
-                pairs = raw.split()
-                coords = []
-                for p in pairs:
-                    coords.extend([float(v) for v in p.split(',')])
-            else:
-                # all comma-separated
-                coords = [float(v) for v in raw.split(',')]
-            if len(coords) % 2 != 0:
-                continue
-            ra_arr  = np.array(coords[0::2])
-            dec_arr = np.array(coords[1::2])
-
-            # Extract tag if present
-            tag_m = re.search(r'tag=\{([^}]+)\}', line)
-            tag = tag_m.group(1) if tag_m else ''
-
-            if coord_system in ('fk5', 'icrs', 'j2000'):
-                sc = SkyCoord(ra=ra_arr*u.deg, dec=dec_arr*u.deg,
-                              frame='icrs')
-                gc = sc.galactic
-                lon = gc.l.wrap_at(180*u.deg).deg
-                lat = gc.b.deg
-            else:
-                lon = ra_arr
-                lat = dec_arr
-
-            verts = np.column_stack([lon, lat])
-            # Pre-filter: skip polygons entirely outside the target region
-            if (np.all(lon > LON_MAX + LON_MARGIN) or
-                    np.all(lon < LON_MIN - LON_MARGIN) or
-                    np.all(lat > LAT_MAX + LAT_MARGIN) or
-                    np.all(lat < LAT_MIN - LAT_MARGIN)):
-                continue
-            results.append((tag, verts))
-    return results
-
-
 # Approximate WFI footprint boxes (Galactic l, b) [deg]
+# ---------------------------------------------------------------------------
 # GBTDS = Roman Galactic Bulge Time Domain Survey
 GBTDS_BOX = dict(l_min=-2.5, l_max=+2.5, b_min=-0.5, b_max=+0.3)
-# RGPS = Roman Galactic Center Time Domain extension
+# RGPS = Roman Galactic Center Time Domain (GC Time Domain) footprint
 RGPS_BOX  = dict(l_min=-0.9, l_max=+1.6, b_min=-1.6, b_max=-0.8)
 
-# Load region data once
-print('Loading Roman footprint regions...')
-_gbtds_polys = parse_ds9_polygons(ROMAN_GBTDS)
-_rgps_polys  = parse_ds9_polygons(ROMAN_RGPS)
-print(f'  GBTDS: {len(_gbtds_polys)} polygons')
-print(f'  RGPS:  {len(_rgps_polys)} polygons')
 
-
-def get_roman_patches(wcs, shape):
-    """
-    Convert Roman polygons to matplotlib Patch objects in pixel coordinates.
-    Returns (gbtds_patches, rgps_patches).
-    """
-    ny, nx = shape
-
-    def polys_to_patches(polys):
-        patches = []
-        for _tag, verts in polys:
-            # Transform galactic (l, b) → pixel
-            try:
-                px, py = wcs.all_world2pix(verts[:, 0], verts[:, 1], 0)
-            except Exception:
-                continue
-            # Skip if entirely outside the plot region
-            if (np.all(px < 0) or np.all(px > nx) or
-                    np.all(py < 0) or np.all(py > ny)):
-                continue
-            patches.append(MplPolygon(np.column_stack([px, py]), closed=True))
-        return patches
-
-    return polys_to_patches(_gbtds_polys), polys_to_patches(_rgps_polys)
+def _draw_roman_boxes(ax):
+    """Draw approximate GBTDS and RGPS footprint rectangles on *ax*."""
+    for box, color in [(GBTDS_BOX, 'dodgerblue'), (RGPS_BOX, 'darkorange')]:
+        xs = [box['l_max'], box['l_min'], box['l_min'], box['l_max'], box['l_max']]
+        ys = [box['b_min'], box['b_min'], box['b_max'], box['b_max'], box['b_min']]
+        ax.plot(xs, ys, color=color, lw=2.0, ls='--', alpha=0.9, zorder=9,
+                solid_capstyle='butt')
 
 
 # ---------------------------------------------------------------------------
@@ -293,32 +196,7 @@ def plot_gcregion_ax(ax, dame_data, chimps_data, arm_cfg, show_roman=False):
 
     # --- Roman footprints ------------------------------------------------
     if show_roman:
-        # Approximate boxes from nominal survey footprint coordinates
-        def _draw_box(box, color, lw=2.0, ls='--', alpha=0.9):
-            l0, l1 = box['l_max'], box['l_min']   # note: lon axis flipped
-            b0, b1 = box['b_min'], box['b_max']
-            xs = [l0, l1, l1, l0, l0]
-            ys = [b0, b0, b1, b1, b0]
-            ax.plot(xs, ys, color=color, lw=lw, ls=ls, alpha=alpha,
-                    transform=ax.transData, zorder=9, solid_capstyle='butt')
-
-        _draw_box(GBTDS_BOX, color='dodgerblue')
-        _draw_box(RGPS_BOX,  color='darkorange')
-
-        # Optionally also overlay DS9-file polygons if they loaded
-        gbtds_patches, rgps_patches = get_roman_patches(TARGET_WCS, TARGET_SHAPE)
-        if gbtds_patches:
-            col = PatchCollection(gbtds_patches, linewidths=0.8,
-                                  edgecolors='dodgerblue', facecolors='none',
-                                  transform=ax.transData, zorder=8,
-                                  label='Roman GBTDS')
-            ax.add_collection(col)
-        if rgps_patches:
-            col = PatchCollection(rgps_patches, linewidths=0.8,
-                                  edgecolors='darkorange', facecolors='none',
-                                  transform=ax.transData, zorder=8,
-                                  label='Roman RGPS')
-            ax.add_collection(col)
+        _draw_roman_boxes(ax)
 
     # --- Axes formatting -------------------------------------------------
     ax.set_xlim(LON_MAX, LON_MIN)     # Galactic longitude increases to the left
@@ -368,7 +246,6 @@ def make_arm_figure(arm_names, show_roman=False, outpath=None, outdir='.'):
     for ax, (cfg, dame, chimps) in zip(axes, panels):
         plot_gcregion_ax(ax, dame, chimps, cfg, show_roman=show_roman)
 
-    # Legend for Roman on last axis
     if show_roman:
         from matplotlib.lines import Line2D
         handles = [

@@ -133,9 +133,9 @@ def reproject_to_target(fits_path):
 # Approximate WFI footprint boxes (Galactic l, b) [deg]
 # ---------------------------------------------------------------------------
 # GBTDS = Roman Galactic Bulge Time Domain Survey
-GBTDS_BOX = dict(l_min=-2.5, l_max=+2.5, b_min=-0.5, b_max=+0.3)
+GBTDS_BOX = dict(l_min=-0.9, l_max=+1.6, b_min=-1.6, b_max=-0.8)
 # RGPS = Roman Galactic Center Time Domain (GC Time Domain) footprint
-RGPS_BOX  = dict(l_min=-0.9, l_max=+1.6, b_min=-1.6, b_max=-0.8)
+RGPS_BOX  = dict(l_min=-2.5, l_max=+2.5, b_min=-0.5, b_max=+0.3)
 
 
 def _draw_roman_boxes(ax):

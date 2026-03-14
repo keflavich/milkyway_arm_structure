@@ -26,6 +26,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.io import fits
 from astropy.wcs import WCS, FITSFixedWarning
 from reproject import reproject_interp
@@ -39,8 +40,8 @@ warnings.filterwarnings('ignore', category=RuntimeWarning, message='.*All-NaN.*'
 # ---------------------------------------------------------------------------
 # Approximate WFI footprint boxes (Galactic l, b) [deg]
 # ---------------------------------------------------------------------------
-GBTDS_BOX = dict(l_min=-2.5, l_max=+2.5, b_min=-0.5, b_max=+0.3)
-RGPS_BOX  = dict(l_min=-0.9, l_max=+1.6, b_min=-1.6, b_max=-0.8)
+GBTDS_BOX = dict(l_min=-0.9, l_max=+1.6, b_min=-1.6, b_max=-0.8)
+RGPS_BOX  = dict(l_min=-2.5, l_max=+2.5, b_min=-0.5, b_max=+0.3)
 
 
 def _draw_roman_boxes(ax):
@@ -265,11 +266,13 @@ def make_spatial_figure():
                 vlo = float(np.nanpercentile(finite, 5))
                 vhi = float(np.nanpercentile(finite, 99.5))
                 vlo = max(vlo, 0.0)
-                im = ax.imshow(arr, origin='lower', aspect='auto',
+                im = ax.imshow(arr, origin='lower', aspect='equal',
                                extent=extent, cmap='gray_r',
                                vmin=vlo, vmax=vhi, interpolation='nearest')
-                cb = fig.colorbar(im, ax=ax, pad=0.02, fraction=0.046)
-                cb.set_label(r'$T_{\rm mb}$ (K)', fontsize=12)
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes('right', size='3.5%', pad=0.05)
+                cb = fig.colorbar(im, cax=cax)
+                cb.set_label(r'$T_{\rm mb}$ (K) $\propto N(H_2)$', fontsize=12)
                 cb.ax.tick_params(labelsize=12)
 
         # Light grid
@@ -280,6 +283,7 @@ def make_spatial_figure():
 
         ax.set_xlim(LON_MAX, LON_MIN)
         ax.set_ylim(-0.5, 0.5)
+        ax.set_box_aspect((0.5 - (-0.5)) / (LON_MAX - LON_MIN))
         ax.set_title(arm_name, fontsize=16)
         ax.set_xlabel(r'$\ell$ (deg)', fontsize=14)
         ax.set_ylabel(r'$b$ (deg)', fontsize=14)
@@ -334,7 +338,7 @@ def make_pv_figure(v_lim=200):
     # --- Plot ---
     aspect_ratio = (v_max - v_min) / (PV_LON_MAX - PV_LON_MIN)
     fig_h = max(3.0, min(7.0, 12 * aspect_ratio * 0.55))
-    fig, ax = plt.subplots(figsize=(12, fig_h))
+    fig, ax = plt.subplots(figsize=(12, fig_h / 2))
     ax.set_facecolor('black')
 
     finite = pv_mosaic[np.isfinite(pv_mosaic)]
@@ -458,11 +462,13 @@ def make_standalone_arm_figures():
             if finite.size > 0:
                 vlo = max(float(np.nanpercentile(finite, 5)), 0.0)
                 vhi = float(np.nanpercentile(finite, 99.5))
-                im = ax.imshow(arr, origin='lower', aspect='auto',
+                im = ax.imshow(arr, origin='lower', aspect='equal',
                                extent=extent, cmap='gray_r',
                                vmin=vlo, vmax=vhi, interpolation='nearest')
-                cb = fig.colorbar(im, ax=ax, pad=0.01, fraction=0.025)
-                cb.set_label(r'$T_{\rm mb}$ (K)', fontsize=14)
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes('right', size='2.8%', pad=0.05)
+                cb = fig.colorbar(im, cax=cax)
+                cb.set_label(r'$T_{\rm mb}$ (K) $\propto N(H_2)$', fontsize=14)
                 cb.ax.tick_params(labelsize=14)
 
         for gl in np.arange(-3, 4):
@@ -471,8 +477,9 @@ def make_standalone_arm_figures():
             ax.axhline(gb, color='gray', lw=0.3, alpha=0.4)
 
         ax.set_xlim(LON_MAX, LON_MIN)
-        ax.set_ylim(-1.0, 1.0)
-        ax.set_title(f'SEDIGISM \u00b9\u00b3CO(2\u20131) \u2014 {arm_name} (background-subtracted)',
+        ax.set_ylim(-1.0, 0.5)
+        ax.set_box_aspect((0.5 - (-1.0)) / (LON_MAX - LON_MIN))
+        ax.set_title(f'SEDIGISM \u00b9\u00b3CO(2\u20131) \u2014 {arm_name}',
                      fontsize=17)
         ax.set_xlabel(r'$\ell$ (deg)', fontsize=15)
         ax.set_ylabel(r'$b$ (deg)', fontsize=15)
@@ -489,7 +496,7 @@ def make_standalone_arm_figures():
             Line2D([0], [0], color='dodgerblue', lw=2.0, ls='--', label='Roman GBTDS'),
             Line2D([0], [0], color='darkorange',  lw=2.0, ls='--', label='Roman RGPS'),
         ]
-        ax.legend(handles=legend_handles, loc='upper right', fontsize=13,
+        ax.legend(handles=legend_handles, loc='lower right', fontsize=13,
                   framealpha=0.75)
         outpath_roman = os.path.join(subdir, f'sedigism_{slug}_arm_roman.png')
         fig.savefig(outpath_roman, dpi=150, bbox_inches='tight')

@@ -134,7 +134,8 @@ def load_and_crop(fits_path, half_size_deg=HALF_SIZE):
 
 
 def make_figure(main_crop, main_wcs, main_header,
-                instrument_label, line_label, bg_method_label, outbase):
+                instrument_label, line_label, bg_method_label, outbase,
+                contour_data=None, contour_wcs=None, contour_levels=None):
     """
     Build and save one instrument + AV-inset figure.
 
@@ -166,6 +167,17 @@ def make_figure(main_crop, main_wcs, main_header,
                    origin="lower", aspect="equal",
                    interpolation="nearest",
                    vmin=vlo, vmax=vhi, cmap="gray_r")
+
+    if contour_data is not None and contour_wcs is not None and contour_levels is not None:
+        ax.contour(
+            contour_data,
+            levels=contour_levels,
+            colors="cyan",
+            linewidths=1.4,
+            alpha=0.9,
+            transform=ax.get_transform(contour_wcs),
+            zorder=8,
+        )
 
     # Galactic WCS axis labels and ticks
     lon_c = ax.coords["glon"]
@@ -258,18 +270,31 @@ def make_figure(main_crop, main_wcs, main_header,
     try:
         ra_a  = axins.coords["ra"]
         dec_a = axins.coords["dec"]
-        ra_a.set_axislabel("RA (J2000)",   fontsize=MIDDLE_FONTSIZE)
-        dec_a.set_axislabel("Dec (J2000)", fontsize=MIDDLE_FONTSIZE, minpad=-0.3)
+        ra_a.set_axislabel("")
+        dec_a.set_axislabel("")
         ra_a.set_major_formatter("hh:mm:ss")
         dec_a.set_major_formatter("dd:mm:ss")
         ra_a.set_ticks(spacing=0.5 * u.arcmin)
         dec_a.set_ticks(spacing=0.5 * u.arcmin)
         ra_a.ticklabels.set_fontsize(SMALL_FONTSIZE)
         dec_a.ticklabels.set_fontsize(SMALL_FONTSIZE)
+        ra_a.set_ticklabel_visible(False)
+        dec_a.set_ticklabel_visible(False)
         axins.coords.grid(color="white", alpha=0.15,
                           linestyle="--", linewidth=0.3)
     except Exception:
         pass
+
+    if contour_data is not None and contour_wcs is not None and contour_levels is not None:
+        axins.contour(
+            contour_data,
+            levels=contour_levels,
+            colors="cyan",
+            linewidths=1.2,
+            alpha=0.9,
+            transform=axins.get_transform(contour_wcs),
+            zorder=8,
+        )
 
     axins.set_title("JWST $A_V$ (zoom-in)", fontsize=BIG_FONTSIZE, pad=3)
 
@@ -399,5 +424,28 @@ for ds in datasets:
             bg_method_label=bg_label,
             outbase=outbase,
         )
+
+print("Building Nobeyama BEARS + ACES H13CO+ contour-overlay figure ...")
+bears_crop, bears_wcs, bears_hdr = load_and_crop(BEARS_SIMPLE)
+h13cop_crop, h13cop_wcs, _ = load_and_crop(ACES_H13COP_SIMPLE)
+h13cop_finite = h13cop_crop[np.isfinite(h13cop_crop)]
+h13cop_pos = h13cop_finite[h13cop_finite > 0]
+if h13cop_pos.size > 10:
+    h13cop_levels = np.nanpercentile(h13cop_pos, [95, 99.9])
+else:
+    h13cop_levels = np.nanpercentile(h13cop_finite, [95, 99.9])
+
+make_figure(
+    main_crop=bears_crop,
+    main_wcs=bears_wcs,
+    main_header=bears_hdr,
+    instrument_label="Nobeyama BEARS",
+    line_label=r"$^{12}$CO(1$-$0)",
+    bg_method_label="simple mean BG subtraction",
+    outbase=OUTDIR + "nobeyama_bears_av_inset_h13cop_contours",
+    contour_data=h13cop_crop,
+    contour_wcs=h13cop_wcs,
+    contour_levels=h13cop_levels,
+)
 
 print("Done.")

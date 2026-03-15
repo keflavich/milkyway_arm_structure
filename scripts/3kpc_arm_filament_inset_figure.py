@@ -52,9 +52,9 @@ import astropy.visualization.wcsaxes as wcsaxes_mod
 
 warnings.filterwarnings("ignore")
 
-BIG_FONTSIZE = 18
-MIDDLE_FONTSIZE = 16
-SMALL_FONTSIZE = 14
+BIG_FONTSIZE = 20
+MIDDLE_FONTSIZE = 18
+SMALL_FONTSIZE = 16
 
 plt.rcParams.update({
     "figure.facecolor":   "w",
@@ -243,9 +243,13 @@ def make_figure(main_crop, main_wcs, main_header,
     # )
 
     # ---- inset axes (right side) -------------------------------------------
-    # Place right of the main-panel colorbar, with a small gap
-    ins_left   = cax_m_rect[0] + cax_m_rect[2] - 0.18
-    ins_width  = 0.97 - ins_left - 0.035   # leave room for inset colorbar
+    # Place tight against the main panel, but explicitly reserve room for
+    # the inset colorbar so it does not hang off the figure edge.
+    ins_left = cax_m_rect[0] + cax_m_rect[2] - 0.18
+    cb_gap_av = 0.001
+    inset_right = 0.965
+    cax_i_left = inset_right - cb_wid
+    ins_width = cax_i_left - cb_gap_av - ins_left
     inset_rect = [ins_left, main_rect[1], ins_width, main_rect[3]]
 
     axins = inset_axes(
@@ -301,10 +305,8 @@ def make_figure(main_crop, main_wcs, main_header,
     #         "(b) JWST $A_V$ map", fontsize=14, va="bottom", ha="left",
     #         style="italic")
 
-    # AV colorbar flush to right of inset
-    cb_gap_av  = 0.001
-    cax_i_rect = [inset_rect[0] + inset_rect[2] + cb_gap_av,
-                  inset_rect[1], cb_wid, inset_rect[3]]
+    # AV colorbar flush to right of inset, but still inside the figure
+    cax_i_rect = [cax_i_left, inset_rect[1], cb_wid, inset_rect[3]]
     cax_i = fig.add_axes(cax_i_rect)
     cb_i  = fig.colorbar(im_ins, cax=cax_i)
     cb_i.set_label("$A_V$ [mag]", fontsize=MIDDLE_FONTSIZE)

@@ -89,7 +89,7 @@ ACES_H13COP_LINEAR = FILAMENT_DIR + "ACES_H13COp_linearbg.fits"
 AV_MAP        = "/orange/adamginsburg/jwst/cloudc/images/filament_av_map.fits"
 OUTDIR        = FILAMENT_DIR
 
-MAIN_VMAX_PERCENTILE = 99.95
+MAIN_VMAX_PERCENTILE = 99.90
 
 # ---------------------------------------------------------------------------
 # Region
@@ -169,15 +169,17 @@ def make_figure(main_crop, main_wcs, main_header,
                    vmin=vlo, vmax=vhi, cmap="gray_r")
 
     if contour_data is not None and contour_wcs is not None and contour_levels is not None:
+        axlims = ax.axis()
         ax.contour(
             contour_data,
             levels=contour_levels,
             colors="cyan",
-            linewidths=1.4,
+            linewidths=1.6,
             alpha=0.9,
             transform=ax.get_transform(contour_wcs),
             zorder=8,
         )
+        ax.axis(axlims)
 
     # Galactic WCS axis labels and ticks
     lon_c = ax.coords["glon"]
@@ -194,7 +196,7 @@ def make_figure(main_crop, main_wcs, main_header,
     lat_c.set_ticklabel(exclude_overlapping=True)
     lon_c.ticklabels.set_fontsize(MIDDLE_FONTSIZE)
     lat_c.ticklabels.set_fontsize(MIDDLE_FONTSIZE)
-    ax.coords.grid(color="white", alpha=0.15, linestyle="--", linewidth=0.4)
+    #ax.coords.grid(color="white", alpha=0.15, linestyle="--", linewidth=0.4)
 
     bunit = main_header.get("BUNIT", "K")
     ax.set_title(
@@ -242,7 +244,7 @@ def make_figure(main_crop, main_wcs, main_header,
 
     # ---- inset axes (right side) -------------------------------------------
     # Place right of the main-panel colorbar, with a small gap
-    ins_left   = cax_m_rect[0] + cax_m_rect[2] + 0.04
+    ins_left   = cax_m_rect[0] + cax_m_rect[2] - 0.18
     ins_width  = 0.97 - ins_left - 0.035   # leave room for inset colorbar
     inset_rect = [ins_left, main_rect[1], ins_width, main_rect[3]]
 
@@ -267,30 +269,27 @@ def make_figure(main_crop, main_wcs, main_header,
                           cmap="magma_r")
 
     # RA/Dec labels on inset
-    try:
-        ra_a  = axins.coords["ra"]
-        dec_a = axins.coords["dec"]
-        ra_a.set_axislabel("")
-        dec_a.set_axislabel("")
-        ra_a.set_major_formatter("hh:mm:ss")
-        dec_a.set_major_formatter("dd:mm:ss")
-        ra_a.set_ticks(spacing=0.5 * u.arcmin)
-        dec_a.set_ticks(spacing=0.5 * u.arcmin)
-        ra_a.ticklabels.set_fontsize(SMALL_FONTSIZE)
-        dec_a.ticklabels.set_fontsize(SMALL_FONTSIZE)
-        ra_a.set_ticklabel_visible(False)
-        dec_a.set_ticklabel_visible(False)
-        axins.coords.grid(color="white", alpha=0.15,
-                          linestyle="--", linewidth=0.3)
-    except Exception:
-        pass
+    ra_a  = axins.coords["ra"]
+    dec_a = axins.coords["dec"]
+    ra_a.set_axislabel("")
+    dec_a.set_axislabel("")
+    ra_a.set_major_formatter("hh:mm:ss")
+    dec_a.set_major_formatter("dd:mm:ss")
+    ra_a.set_ticks(spacing=0.5 * u.arcmin)
+    dec_a.set_ticks(spacing=0.5 * u.arcmin)
+    ra_a.ticklabels.set_fontsize(SMALL_FONTSIZE)
+    dec_a.ticklabels.set_fontsize(SMALL_FONTSIZE)
+    ra_a.set_ticklabel_visible(False)
+    dec_a.set_ticklabel_visible(False)
+    #axins.coords.grid(color="white", alpha=0.15,
+    #                  linestyle="--", linewidth=0.3)
 
     if contour_data is not None and contour_wcs is not None and contour_levels is not None:
         axins.contour(
             contour_data,
             levels=contour_levels,
             colors="cyan",
-            linewidths=1.2,
+            linewidths=2.2,
             alpha=0.9,
             transform=axins.get_transform(contour_wcs),
             zorder=8,
@@ -427,13 +426,13 @@ for ds in datasets:
 
 print("Building Nobeyama BEARS + ACES H13CO+ contour-overlay figure ...")
 bears_crop, bears_wcs, bears_hdr = load_and_crop(BEARS_SIMPLE)
-h13cop_crop, h13cop_wcs, _ = load_and_crop(ACES_H13COP_SIMPLE)
+h13cop_crop, h13cop_wcs, _ = load_and_crop(ACES_H13COP_SIMPLE, half_size_deg=0.16)
 h13cop_finite = h13cop_crop[np.isfinite(h13cop_crop)]
 h13cop_pos = h13cop_finite[h13cop_finite > 0]
 if h13cop_pos.size > 10:
-    h13cop_levels = np.nanpercentile(h13cop_pos, [95, 99.9])
+    h13cop_levels = np.nanpercentile(h13cop_pos, [98, ])
 else:
-    h13cop_levels = np.nanpercentile(h13cop_finite, [95, 99.9])
+    h13cop_levels = np.nanpercentile(h13cop_finite, [98, ])
 
 make_figure(
     main_crop=bears_crop,

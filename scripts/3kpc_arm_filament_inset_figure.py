@@ -52,18 +52,18 @@ import astropy.visualization.wcsaxes as wcsaxes_mod
 
 warnings.filterwarnings("ignore")
 
-BIG_FONTSIZE = 22.5
-MIDDLE_FONTSIZE = 20
-SMALL_FONTSIZE = 17.5
+BIG_FONTSIZE = 18
+MIDDLE_FONTSIZE = 16
+SMALL_FONTSIZE = 14
 
 plt.rcParams.update({
     "figure.facecolor":   "w",
-    "font.size":           20,
-    "axes.labelsize":      20,
-    "axes.titlesize":      18.75,
-    "xtick.labelsize":     17.5,
-    "ytick.labelsize":     17.5,
-    "legend.fontsize":     17.5,
+    "font.size":           16,
+    "axes.labelsize":      16,
+    "axes.titlesize":      15,
+    "xtick.labelsize":     14,
+    "ytick.labelsize":     14,
+    "legend.fontsize":     14,
     "image.origin":       "lower",
     "image.interpolation": "nearest",
 })
@@ -230,7 +230,7 @@ def make_figure(main_crop, main_wcs, main_header,
 
     # ---- inset axes (right side) -------------------------------------------
     # Place right of the main-panel colorbar, with a small gap
-    ins_left   = cax_m_rect[0] + cax_m_rect[2] + 0.015
+    ins_left   = cax_m_rect[0] + cax_m_rect[2] + 0.04
     ins_width  = 0.97 - ins_left - 0.035   # leave room for inset colorbar
     inset_rect = [ins_left, main_rect[1], ins_width, main_rect[3]]
 

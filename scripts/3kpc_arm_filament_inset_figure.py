@@ -25,6 +25,7 @@ Produces figures for:
   CHIMPS 12CO(3-2)  - simple and linear BG sub
   Nobeyama BEARS 12CO - simple and linear BG sub
   Nobeyama FOREST 13CO - simple and linear BG sub
+    ACES CS(2-1), SO(3_2-2_1), HNCO, H13CO+ - simple and linear BG sub
 
 Outputs
 -------
@@ -51,18 +52,18 @@ import astropy.visualization.wcsaxes as wcsaxes_mod
 
 warnings.filterwarnings("ignore")
 
-BIG_FONTSIZE = 18
-MIDDLE_FONTSIZE = 16
-SMALL_FONTSIZE = 14
+BIG_FONTSIZE = 22.5
+MIDDLE_FONTSIZE = 20
+SMALL_FONTSIZE = 17.5
 
 plt.rcParams.update({
     "figure.facecolor":   "w",
-    "font.size":           16,
-    "axes.labelsize":      16,
-    "axes.titlesize":      15,
-    "xtick.labelsize":     14,
-    "ytick.labelsize":     14,
-    "legend.fontsize":     14,
+    "font.size":           20,
+    "axes.labelsize":      20,
+    "axes.titlesize":      18.75,
+    "xtick.labelsize":     17.5,
+    "ytick.labelsize":     17.5,
+    "legend.fontsize":     17.5,
     "image.origin":       "lower",
     "image.interpolation": "nearest",
 })
@@ -77,8 +78,18 @@ BEARS_SIMPLE  = FILAMENT_DIR + "Nobeyama_BEARS_12CO_simplebg.fits"
 BEARS_LINEAR  = FILAMENT_DIR + "Nobeyama_BEARS_12CO_linearbg.fits"
 FOREST_SIMPLE = FILAMENT_DIR + "Nobeyama_FOREST_13CO_simplebg.fits"
 FOREST_LINEAR = FILAMENT_DIR + "Nobeyama_FOREST_13CO_linearbg.fits"
+ACES_CS_SIMPLE = FILAMENT_DIR + "ACES_CS21_simplebg.fits"
+ACES_CS_LINEAR = FILAMENT_DIR + "ACES_CS21_linearbg.fits"
+ACES_SO32_SIMPLE = FILAMENT_DIR + "ACES_SO32_simplebg.fits"
+ACES_SO32_LINEAR = FILAMENT_DIR + "ACES_SO32_linearbg.fits"
+ACES_HNCO_SIMPLE = FILAMENT_DIR + "ACES_HNCO_7m12mTP_simplebg.fits"
+ACES_HNCO_LINEAR = FILAMENT_DIR + "ACES_HNCO_7m12mTP_linearbg.fits"
+ACES_H13COP_SIMPLE = FILAMENT_DIR + "ACES_H13COp_simplebg.fits"
+ACES_H13COP_LINEAR = FILAMENT_DIR + "ACES_H13COp_linearbg.fits"
 AV_MAP        = "/orange/adamginsburg/jwst/cloudc/images/filament_av_map.fits"
 OUTDIR        = FILAMENT_DIR
+
+MAIN_VMAX_PERCENTILE = 99.95
 
 # ---------------------------------------------------------------------------
 # Region
@@ -148,7 +159,7 @@ def make_figure(main_crop, main_wcs, main_header,
 
     finite = main_crop[np.isfinite(main_crop)]
     vlo = float(np.nanpercentile(finite,  1)) if finite.size else 0.
-    vhi = float(np.nanpercentile(finite, 99)) if finite.size else 1.
+    vhi = float(np.nanpercentile(finite, MAIN_VMAX_PERCENTILE)) if finite.size else 1.
     vhi = max(vhi, vlo + 1e-6)
 
     im = ax.imshow(main_crop,
@@ -219,7 +230,7 @@ def make_figure(main_crop, main_wcs, main_header,
 
     # ---- inset axes (right side) -------------------------------------------
     # Place right of the main-panel colorbar, with a small gap
-    ins_left   = cax_m_rect[0] + cax_m_rect[2] + 0.04
+    ins_left   = cax_m_rect[0] + cax_m_rect[2] + 0.015
     ins_width  = 0.97 - ins_left - 0.035   # leave room for inset colorbar
     inset_rect = [ins_left, main_rect[1], ins_width, main_rect[3]]
 
@@ -339,6 +350,34 @@ datasets = [
         "instrument": "Nobeyama FOREST",
         "line": r"$^{13}$CO(1$-$0)",
         "prefix": "nobeyama_forest",
+    },
+    {
+        "simple": ACES_CS_SIMPLE,
+        "linear": ACES_CS_LINEAR,
+        "instrument": "ACES",
+        "line": r"CS(2$-$1)",
+        "prefix": "aces_cs21",
+    },
+    {
+        "simple": ACES_SO32_SIMPLE,
+        "linear": ACES_SO32_LINEAR,
+        "instrument": "ACES",
+        "line": r"SO(3$_2$$-$2$_1$)",
+        "prefix": "aces_so32",
+    },
+    {
+        "simple": ACES_HNCO_SIMPLE,
+        "linear": ACES_HNCO_LINEAR,
+        "instrument": "ACES",
+        "line": r"HNCO",
+        "prefix": "aces_hnco",
+    },
+    {
+        "simple": ACES_H13COP_SIMPLE,
+        "linear": ACES_H13COP_LINEAR,
+        "instrument": "ACES",
+        "line": r"H$^{13}$CO$^+$",
+        "prefix": "aces_h13cop",
     },
 ]
 

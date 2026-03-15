@@ -58,12 +58,12 @@ SMALL_FONTSIZE = 16
 
 plt.rcParams.update({
     "figure.facecolor":   "w",
-    "font.size":           16,
-    "axes.labelsize":      16,
-    "axes.titlesize":      15,
-    "xtick.labelsize":     14,
-    "ytick.labelsize":     14,
-    "legend.fontsize":     14,
+    "font.size":           18,
+    "axes.labelsize":      18,
+    "axes.titlesize":      17,
+    "xtick.labelsize":     16,
+    "ytick.labelsize":     16,
+    "legend.fontsize":     16,
     "image.origin":       "lower",
     "image.interpolation": "nearest",
 })
@@ -243,13 +243,12 @@ def make_figure(main_crop, main_wcs, main_header,
     # )
 
     # ---- inset axes (right side) -------------------------------------------
-    # Place tight against the main panel, but explicitly reserve room for
-    # the inset colorbar so it does not hang off the figure edge.
+    # Place tight against the main panel, and keep the inset colorbar
+    # immediately adjacent to the inset instead of at a fixed far-right slot.
     ins_left = cax_m_rect[0] + cax_m_rect[2] - 0.18
-    cb_gap_av = 0.001
+    cb_gap_av = 0.003
     inset_right = 0.965
-    cax_i_left = inset_right - cb_wid
-    ins_width = cax_i_left - cb_gap_av - ins_left
+    ins_width = inset_right - ins_left - cb_gap_av - cb_wid
     inset_rect = [ins_left, main_rect[1], ins_width, main_rect[3]]
 
     axins = inset_axes(
@@ -305,8 +304,9 @@ def make_figure(main_crop, main_wcs, main_header,
     #         "(b) JWST $A_V$ map", fontsize=14, va="bottom", ha="left",
     #         style="italic")
 
-    # AV colorbar flush to right of inset, but still inside the figure
-    cax_i_rect = [cax_i_left, inset_rect[1], cb_wid, inset_rect[3]]
+    # AV colorbar immediately to the right of inset, still inside the figure
+    cax_i_rect = [inset_rect[0] + inset_rect[2] + cb_gap_av,
+                  inset_rect[1], cb_wid, inset_rect[3]]
     cax_i = fig.add_axes(cax_i_rect)
     cb_i  = fig.colorbar(im_ins, cax=cax_i)
     cb_i.set_label("$A_V$ [mag]", fontsize=MIDDLE_FONTSIZE)
@@ -428,7 +428,7 @@ for ds in datasets:
 
 print("Building Nobeyama BEARS + ACES H13CO+ contour-overlay figure ...")
 bears_crop, bears_wcs, bears_hdr = load_and_crop(BEARS_SIMPLE)
-h13cop_crop, h13cop_wcs, _ = load_and_crop(ACES_H13COP_SIMPLE, half_size_deg=0.16)
+h13cop_crop, h13cop_wcs, _ = load_and_crop(ACES_H13COP_SIMPLE, half_size_deg=0.03)
 h13cop_finite = h13cop_crop[np.isfinite(h13cop_crop)]
 h13cop_pos = h13cop_finite[h13cop_finite > 0]
 if h13cop_pos.size > 10:

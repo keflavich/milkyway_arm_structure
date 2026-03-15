@@ -29,9 +29,9 @@ Produces figures for:
 
 Outputs
 -------
-  chimps_av_inset_simple.png / .pdf
-  chimps_av_inset_linear.png / .pdf
-  nobeyama_bears_av_inset_simple.png / .pdf
+  chimps_av_inset_simple.png
+  chimps_av_inset_linear.png
+  nobeyama_bears_av_inset_simple.png
   ...etc
 """
 
@@ -344,7 +344,7 @@ def make_figure(main_crop, main_wcs, main_header,
 
     # ---- Save --------------------------------------------------------------
     fig.canvas.draw()
-    for ext in ("png", "pdf"):
+    for ext in ("png", ):# "pdf"):
         path = f"{outbase}.{ext}"
         fig.savefig(path, dpi=150, bbox_inches="tight")
         print(f"  Saved: {path}")

@@ -174,7 +174,8 @@ def make_figure(main_crop, main_wcs, main_header,
             contour_data,
             levels=contour_levels,
             colors="cyan",
-            linewidths=1.6,
+            linewidths=1.0,
+            linestyle='--',
             alpha=0.9,
             transform=ax.get_transform(contour_wcs),
             zorder=8,
@@ -245,11 +246,11 @@ def make_figure(main_crop, main_wcs, main_header,
     # ---- inset axes (right side) -------------------------------------------
     # Place tight against the main panel, and keep the inset colorbar
     # immediately adjacent to the inset instead of at a fixed far-right slot.
-    ins_left = cax_m_rect[0] + cax_m_rect[2] - 0.18
+    ins_left = cax_m_rect[0] + cax_m_rect[2] - 0.23
     cb_gap_av = 0.003
     inset_right = 0.965
     ins_width = inset_right - ins_left - cb_gap_av - cb_wid
-    inset_rect = [ins_left, main_rect[1], ins_width, main_rect[3]]
+    inset_rect = [ins_left, main_rect[1] + 0.015, ins_width, main_rect[3] + 0.008]
 
     axins = inset_axes(
         ax,
@@ -304,17 +305,17 @@ def make_figure(main_crop, main_wcs, main_header,
     #         "(b) JWST $A_V$ map", fontsize=14, va="bottom", ha="left",
     #         style="italic")
 
+    # ---- Connector lines ---------------------------------------------------
+    # Force layout so bbox coords are populated
+    fig.canvas.draw()
+
     # AV colorbar immediately to the right of inset, still inside the figure
-    cax_i_rect = [inset_rect[0] + inset_rect[2] + cb_gap_av,
-                  inset_rect[1], cb_wid, inset_rect[3]]
+    cax_i_rect = [inset_rect[0] + inset_rect[2] - 0.155,
+                  inset_rect[1] - 0.015, cb_wid, inset_rect[3] - 0.004]
     cax_i = fig.add_axes(cax_i_rect)
     cb_i  = fig.colorbar(im_ins, cax=cax_i)
     cb_i.set_label("$A_V$ [mag]", fontsize=MIDDLE_FONTSIZE)
     cb_i.ax.tick_params(labelsize=SMALL_FONTSIZE)
-
-    # ---- Connector lines ---------------------------------------------------
-    # Force layout so bbox coords are populated
-    fig.canvas.draw()
 
     # Connect two diagonal corners of the AV footprint on the main panel
     # to the actual left-side corners of the inset axes:
@@ -428,13 +429,13 @@ for ds in datasets:
 
 print("Building Nobeyama BEARS + ACES H13CO+ contour-overlay figure ...")
 bears_crop, bears_wcs, bears_hdr = load_and_crop(BEARS_SIMPLE)
-h13cop_crop, h13cop_wcs, _ = load_and_crop(ACES_H13COP_SIMPLE, half_size_deg=0.03)
+h13cop_crop, h13cop_wcs, _ = load_and_crop(ACES_H13COP_SIMPLE, half_size_deg=0.05)
 h13cop_finite = h13cop_crop[np.isfinite(h13cop_crop)]
 h13cop_pos = h13cop_finite[h13cop_finite > 0]
 if h13cop_pos.size > 10:
-    h13cop_levels = np.nanpercentile(h13cop_pos, [98, ])
+    h13cop_levels = np.nanpercentile(h13cop_pos, [95, ])
 else:
-    h13cop_levels = np.nanpercentile(h13cop_finite, [98, ])
+    h13cop_levels = np.nanpercentile(h13cop_finite, [95, ])
 
 make_figure(
     main_crop=bears_crop,
